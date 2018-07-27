@@ -1,0 +1,58 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.10
+
+    working_directory: /go/src/github.com/jmoney8080/ses-inbound-mail-analyzing-lambda
+    steps:
+      - checkout
+      - run: 
+          name: Go get dep
+          command: curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      - run: 
+          name: Dep ensure
+          command: dep ensure
+      - run: 
+          name: License Check
+          command: |
+            go get -u github.com/frapposelli/wwhrd
+            wwhrd check
+      - run: 
+          name: Test
+          command: go test -v ./...
+  release:
+    docker:
+      - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/jmoney8080/ses-inbound-mail-analyzing-lambda
+    steps:
+      - checkout
+      - run: 
+          name: Go get dep
+          command: curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      - run: 
+          name: Dep ensure
+          command: dep ensure
+      - run:
+          name: Go get goreleaser
+          command: go get github.com/goreleaser/goreleaser
+      - run:
+          name: Run goreleaser
+          command: goreleaser
+
+workflows:
+  version: 2
+  build-n-release:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - release:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
