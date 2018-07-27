@@ -101,9 +101,9 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) error {
 	return nil
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
+func contains(slice []string, expected string) bool {
+	for _, value := range slice {
+		if value == expected {
 			return true
 		}
 	}
