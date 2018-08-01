@@ -78,16 +78,16 @@ func main() {
 func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) error {
 
 	for _, eventRecord := range event.Records {
+		if eventRecord.SES.Receipt.DMARCVerdict.Status == "FAIL" {
+			Dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
+		}
+
 		if eventRecord.SES.Receipt.SpamVerdict.Status == "FAIL" {
 			Spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
 		}
 
 		if eventRecord.SES.Receipt.VirusVerdict.Status == "FAIL" {
 			Spam.Printf("MessageID=%s possibly contained a VIRUS", eventRecord.SES.Mail.MessageID)
-		}
-
-		if eventRecord.SES.Receipt.DKIMVerdict.Status == "FAIL" || eventRecord.SES.Receipt.SPFVerdict.Status == "FAIL" {
-			Dmarc.Printf("MessageID=%s failed DMARC", eventRecord.SES.Mail.MessageID)
 		}
 
 		for _, from := range eventRecord.SES.Mail.CommonHeaders.From {
