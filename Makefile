@@ -8,4 +8,4 @@ build: dependency
 	GOOS=linux GOARCH=amd64 go build -o lambda main.go
 
 package: build
-	zip ses-inbound-mail-analyzing-lambda.zip lambda
+	zip ses-inbound-mail-filtering-lambda.zip lambda
