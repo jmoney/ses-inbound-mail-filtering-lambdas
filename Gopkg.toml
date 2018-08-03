@@ -1,6 +1,6 @@
 [[constraint]]
   name = "github.com/aws/aws-lambda-go"
-  branch = "master"
+  revision = "1a8f6e54ef8055afe879b3bcd71789f653f05289"
 
 [prune]
   go-tests = true

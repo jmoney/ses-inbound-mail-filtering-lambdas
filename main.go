@@ -25,49 +25,51 @@ import (
 )
 
 var (
-	// Info Logger
-	Info *log.Logger
-	// Warning Logger
-	Warning *log.Logger
-	// Error Logger
-	Error *log.Logger
-	// Spam logger
-	Spam *log.Logger
-	//Dmarc logger
-	Dmarc *log.Logger
-	//Blocklist logger
-	Blocklist *log.Logger
+	spam      *log.Logger
+	virus     *log.Logger
+	dmarc     *log.Logger
+	blocklist *log.Logger
 
-	blocklist []string
+	block map[string]string
 )
+
+// SimpleEmailDisposition disposition return for SES
+type SimpleEmailDisposition struct {
+	Disposition string `json:"disposition"`
+}
 
 func init() {
 
-	Info = log.New(os.Stdout,
-		"[INFO]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Warning = log.New(os.Stdout,
-		"[WARNING]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Error = log.New(os.Stderr,
-		"[ERROR]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Spam = log.New(os.Stdout,
+	spam = log.New(os.Stdout,
 		"[SPAM]: ",
-		log.Ldate|log.Ltime)
+		log.Ldate|log.Ltime,
+	)
 
-	Dmarc = log.New(os.Stdout,
+	virus = log.New(os.Stdout,
+		"[VIRUS]: ",
+		log.Ldate|log.Ltime,
+	)
+
+	dmarc = log.New(os.Stdout,
 		"[DMARC]: ",
-		log.Ldate|log.Ltime)
+		log.Ldate|log.Ltime,
+	)
 
-	Blocklist = log.New(os.Stdout,
+	blocklist = log.New(os.Stdout,
 		"[BLOCKLIST]: ",
-		log.Ldate|log.Ltime)
+		log.Ldate|log.Ltime,
+	)
 
-	blocklist = strings.Split(os.Getenv("BLOCKLIST"), ",")
+	// parse the block list out of the environment variable.  format is [$domain:$mode]
+	// This part is the senstive part.  If the format is not correct, golang should panic and fail the startup of the lambda
+	// This is ok as SES will retry inbound receipt rule sets for up to 4hrs. As long as there is proper alerting
+	// to alert on lambda errors and it is fixed within that timeframe no dropped inbounds will occur
+	block = make(map[string]string)
+	rawBlockList := strings.Split(os.Getenv("BLOCK"), ",")
+	for _, entry := range rawBlockList {
+		blockEntry := strings.Split(entry, ":")
+		block[blockEntry[0]] = blockEntry[1]
+	}
 }
 
 func main() {
@@ -75,37 +77,50 @@ func main() {
 }
 
 // HandleRequest function that the lambda runtime service calls
-func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) error {
+func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEmailDisposition, error) {
 
+	// Default is assume this mail is compliant
+	disposition := "CONTINUE"
 	for _, eventRecord := range event.Records {
+		// If DMARC checks failed, log the DKIM and SPF status. If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.DMARCVerdict.Status == "FAIL" {
-			Dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
+			dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
+			if os.Getenv("DMARC_BLOCK_MODE") == "BLOCK" {
+				disposition = "STOP_RULE_SET"
+			}
 		}
 
+		// If AWS has classified this mail as spam, log that this happened.  If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.SpamVerdict.Status == "FAIL" {
-			Spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
+			spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
+			if os.Getenv("SPAM_BLOCK_MODE") == "BLOCK" {
+				disposition = "STOP_RULE_SET"
+			}
 		}
 
+		// If AWS has classified any attachments as containing viruses, log that this happened.  If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.VirusVerdict.Status == "FAIL" {
-			Spam.Printf("MessageID=%s possibly contained a VIRUS", eventRecord.SES.Mail.MessageID)
+			virus.Printf("MessageID=%s possibly contained a VIRUS", eventRecord.SES.Mail.MessageID)
+			if os.Getenv("VIRUS_BLOCK_MODE") == "BLOCK" {
+				disposition = "STOP_RULE_SET"
+			}
 		}
 
+		// Here's the fun.  Do not know why From is a slice but whatevs.
+		// Compare the from domain to the blocklist and log if there was a match. If the blocklist contained the domain of the from address, stop the rule set
 		for _, from := range eventRecord.SES.Mail.CommonHeaders.From {
 			fromDomain := strings.Split(from, "@")[1]
-			if contains(blocklist, fromDomain) {
-				Blocklist.Printf("MessageID=%s fromDomain=%s was in the blocklist", eventRecord.SES.Mail.MessageID, fromDomain)
+			domainBlockValue := block[fromDomain]
+			if domainBlockValue != "" {
+				blocklist.Printf("MessageID=%s fromDomain=%s was in the blocklist in mode=%s", eventRecord.SES.Mail.MessageID, fromDomain, domainBlockValue)
+				if domainBlockValue == "BLOCK" {
+					disposition = "STOP_RULE_SET"
+				}
 			}
 		}
 	}
 
-	return nil
-}
-
-func contains(slice []string, expected string) bool {
-	for _, value := range slice {
-		if value == expected {
-			return true
-		}
-	}
-	return false
+	return SimpleEmailDisposition{
+		Disposition: disposition,
+	}, nil
 }

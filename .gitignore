@@ -1,4 +1,4 @@
 *.zip
-main
+lambda
 dist/
 vendor/
