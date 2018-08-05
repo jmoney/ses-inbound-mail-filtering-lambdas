@@ -80,13 +80,13 @@ func main() {
 func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEmailDisposition, error) {
 
 	// Default is assume this mail is compliant
-	disposition := "CONTINUE"
+	disposition := "STOP_RULE"
 	for _, eventRecord := range event.Records {
 		// If DMARC checks failed, log the DKIM and SPF status. If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.DMARCVerdict.Status == "FAIL" {
 			dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
 			if os.Getenv("DMARC_BLOCK_MODE") == "BLOCK" {
-				disposition = "STOP_RULE_SET"
+				disposition = "CONTINUE"
 			}
 		}
 
@@ -94,7 +94,7 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 		if eventRecord.SES.Receipt.SpamVerdict.Status == "FAIL" {
 			spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
 			if os.Getenv("SPAM_BLOCK_MODE") == "BLOCK" {
-				disposition = "STOP_RULE_SET"
+				disposition = "CONTINUE"
 			}
 		}
 
@@ -102,7 +102,7 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 		if eventRecord.SES.Receipt.VirusVerdict.Status == "FAIL" {
 			virus.Printf("MessageID=%s possibly contained a VIRUS", eventRecord.SES.Mail.MessageID)
 			if os.Getenv("VIRUS_BLOCK_MODE") == "BLOCK" {
-				disposition = "STOP_RULE_SET"
+				disposition = "CONTINUE"
 			}
 		}
 
@@ -114,7 +114,7 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 			if domainBlockValue != "" {
 				blocklist.Printf("MessageID=%s fromDomain=%s was in the blocklist in mode=%s", eventRecord.SES.Mail.MessageID, fromDomain, domainBlockValue)
 				if domainBlockValue == "BLOCK" {
-					disposition = "STOP_RULE_SET"
+					disposition = "CONTINUE"
 				}
 			}
 		}
