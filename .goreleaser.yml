@@ -1,13 +1,26 @@
 project_name: ses-inbound-mail-filtering-lambda
-build:
-  main: main.go
-  binary: ses-inbound-mail-filtering-lambda
-  goos:
-    - linux
-  goarch:
-    - amd64
-checksum:
-  name_template: "{{ .ProjectName }}-v{{ .Version }}_checksums.txt"
+builds:
+  - 
+    main: ./cmd/dmarc/main.go
+    binary: ses-inbound-dmarc-filtering-lambda
+    goos:
+      - linux
+    goarch:
+      - amd64
+  - 
+    main: ./cmd/block/main.go
+    binary: ses-inbound-block-filtering-lambda
+    goos:
+      - linux
+    goarch:
+      - amd64
+  - 
+    main: ./cmd/spam/main.go
+    binary: ses-inbound-spam-filtering-lambda
+    goos:
+      - linux
+    goarch:
+      - amd64
 
 changelog:
   sort: asc

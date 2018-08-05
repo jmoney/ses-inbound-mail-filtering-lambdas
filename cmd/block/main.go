@@ -25,9 +25,6 @@ import (
 )
 
 var (
-	spam      *log.Logger
-	virus     *log.Logger
-	dmarc     *log.Logger
 	blocklist *log.Logger
 
 	block map[string]string
@@ -39,22 +36,6 @@ type SimpleEmailDisposition struct {
 }
 
 func init() {
-
-	spam = log.New(os.Stdout,
-		"[SPAM]: ",
-		log.Ldate|log.Ltime,
-	)
-
-	virus = log.New(os.Stdout,
-		"[VIRUS]: ",
-		log.Ldate|log.Ltime,
-	)
-
-	dmarc = log.New(os.Stdout,
-		"[DMARC]: ",
-		log.Ldate|log.Ltime,
-	)
-
 	blocklist = log.New(os.Stdout,
 		"[BLOCKLIST]: ",
 		log.Ldate|log.Ltime,
@@ -82,30 +63,6 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 	// Default is assume this mail is compliant
 	disposition := "STOP_RULE"
 	for _, eventRecord := range event.Records {
-		// If DMARC checks failed, log the DKIM and SPF status. If block mode is on, stop the rule set
-		if eventRecord.SES.Receipt.DMARCVerdict.Status == "FAIL" {
-			dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
-			if os.Getenv("DMARC_BLOCK_MODE") == "BLOCK" {
-				disposition = "CONTINUE"
-			}
-		}
-
-		// If AWS has classified this mail as spam, log that this happened.  If block mode is on, stop the rule set
-		if eventRecord.SES.Receipt.SpamVerdict.Status == "FAIL" {
-			spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
-			if os.Getenv("SPAM_BLOCK_MODE") == "BLOCK" {
-				disposition = "CONTINUE"
-			}
-		}
-
-		// If AWS has classified any attachments as containing viruses, log that this happened.  If block mode is on, stop the rule set
-		if eventRecord.SES.Receipt.VirusVerdict.Status == "FAIL" {
-			virus.Printf("MessageID=%s possibly contained a VIRUS", eventRecord.SES.Mail.MessageID)
-			if os.Getenv("VIRUS_BLOCK_MODE") == "BLOCK" {
-				disposition = "CONTINUE"
-			}
-		}
-
 		// Here's the fun.  Do not know why From is a slice but whatevs.
 		// Compare the from domain to the blocklist and log if there was a match. If the blocklist contained the domain of the from address, stop the rule set
 		for _, from := range eventRecord.SES.Mail.CommonHeaders.From {
