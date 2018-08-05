@@ -1,22 +1,22 @@
-project_name: ses-inbound-mail-filtering-lambda
+project_name: ses-inbound-mail-filtering-lambdas
 builds:
   - 
     main: ./cmd/dmarc/main.go
-    binary: ses-inbound-dmarc-filtering-lambda
+    binary: dmarc
     goos:
       - linux
     goarch:
       - amd64
   - 
     main: ./cmd/block/main.go
-    binary: ses-inbound-block-filtering-lambda
+    binary: domainBlock
     goos:
       - linux
     goarch:
       - amd64
   - 
     main: ./cmd/spam/main.go
-    binary: ses-inbound-spam-filtering-lambda
+    binary: spam
     goos:
       - linux
     goarch:
@@ -41,7 +41,7 @@ release:
   # Default is extracted from the origin remote URL.
   github:
     owner: jmoney8080
-    name: ses-inbound-mail-filtering-lambda
+    name: ses-inbound-mail-filtering-lambdas
 
   # If set to true, will not auto-publish the release.
   # Default is false.
@@ -53,7 +53,7 @@ release:
 
   # You can change the name of the GitHub release.
   # Default is ``
-  name_template: "ses-inbound-mail-filtering-lambda-v{{ .Version }}"
+  name_template: "ses-inbound-mail-filtering-lambdas-v{{ .Version }}"
 
   # You can disable this pipe in order to not upload any artifacts to
   # GitHub.
