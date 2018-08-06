@@ -9,7 +9,7 @@ builds:
       - amd64
   - 
     main: ./cmd/block/main.go
-    binary: domainBlock
+    binary: block
     goos:
       - linux
     goarch:
