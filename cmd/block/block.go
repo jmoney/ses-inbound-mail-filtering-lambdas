@@ -40,25 +40,22 @@ func init() {
 		"[BLOCKLIST]: ",
 		log.Ldate|log.Ltime,
 	)
-
-	// parse the block list out of the environment variable.  format is [$domain:$mode]
-	// This part is the senstive part.  If the format is not correct, golang should panic and fail the startup of the lambda
-	// This is ok as SES will retry inbound receipt rule sets for up to 4hrs. As long as there is proper alerting
-	// to alert on lambda errors and it is fixed within that timeframe no dropped inbounds will occur
-	block = make(map[string]string)
-	rawBlockList := strings.Split(os.Getenv("BLOCK"), ",")
-	for _, entry := range rawBlockList {
-		blockEntry := strings.Split(entry, ":")
-		block[blockEntry[0]] = blockEntry[1]
-	}
 }
 
 func main() {
+	if block == nil {
+		block = BuildBlockMap(os.Getenv("BLOCK"))
+	}
 	lambda.Start(HandleRequest)
 }
 
 // HandleRequest function that the lambda runtime service calls
 func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEmailDisposition, error) {
+	return CheckBlock(event, block), nil
+}
+
+// CheckBlock split out for easier unit testing
+func CheckBlock(event events.SimpleEmailEvent, blockMap map[string]string) SimpleEmailDisposition {
 
 	// Default is assume this mail is compliant
 	disposition := "STOP_RULE"
@@ -79,5 +76,20 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 
 	return SimpleEmailDisposition{
 		Disposition: disposition,
-	}, nil
+	}
+}
+
+// BuildBlockMap parse the block list out of the environment variable.  format is [$domain:$mode]
+// This part is the senstive part.  If the format is not correct, golang should panic and fail the startup of the lambda
+// This is ok as SES will retry inbound receipt rule sets for up to 4hrs. As long as there is proper alerting
+// to alert on lambda errors and it is fixed within that timeframe no dropped inbounds will occur
+func BuildBlockMap(blockString string) map[string]string {
+	block = make(map[string]string)
+	rawBlockList := strings.Split(blockString, ",")
+	for _, entry := range rawBlockList {
+		blockEntry := strings.Split(entry, ":")
+		block[blockEntry[0]] = blockEntry[1]
+	}
+
+	return block
 }

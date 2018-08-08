@@ -53,27 +53,33 @@ func main() {
 // HandleRequest function that the lambda runtime service calls
 func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEmailDisposition, error) {
 
+	return CheckSPAM(event, os.Getenv("SPAM_BLOCK_MODE") == "BLOCK", os.Getenv("VIRUS_BLOCK_MODE") == "BLOCK"), nil
+}
+
+// CheckSPAM This is split out from HandleRequest for unit testing purproses so the tests do not have to figure out how to
+// work with environment variables
+func CheckSPAM(event events.SimpleEmailEvent, blockSpam bool, blockVirus bool) SimpleEmailDisposition {
+
 	// Default is assume this mail is compliant
 	disposition := "STOP_RULE"
 	for _, eventRecord := range event.Records {
 		// If AWS has classified this mail as spam, log that this happened.  If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.SpamVerdict.Status == "FAIL" {
 			spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
-			if os.Getenv("SPAM_BLOCK_MODE") == "BLOCK" {
+			if blockSpam {
 				disposition = "CONTINUE"
 			}
 		}
 
 		// If AWS has classified any attachments as containing viruses, log that this happened.  If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.VirusVerdict.Status == "FAIL" {
-			virus.Printf("MessageID=%s possibly contained a VIRUS", eventRecord.SES.Mail.MessageID)
-			if os.Getenv("VIRUS_BLOCK_MODE") == "BLOCK" {
+			virus.Printf("MessageID=%s possibly contained a possible VIRUS", eventRecord.SES.Mail.MessageID)
+			if blockVirus {
 				disposition = "CONTINUE"
 			}
 		}
 	}
-
 	return SimpleEmailDisposition{
 		Disposition: disposition,
-	}, nil
+	}
 }

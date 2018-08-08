@@ -45,6 +45,12 @@ func main() {
 
 // HandleRequest function that the lambda runtime service calls
 func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEmailDisposition, error) {
+	return CheckDMARC(event, os.Getenv("DMARC_BLOCK_MODE") == "BLOCK"), nil
+}
+
+// CheckDMARC This is split out from HandleRequest for unit testing purproses so the tests do not have to figure out how to
+// work with environment variables
+func CheckDMARC(event events.SimpleEmailEvent, blockDmarc bool) SimpleEmailDisposition {
 
 	// Default is assume this mail is compliant
 	disposition := "STOP_RULE"
@@ -52,7 +58,7 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 		// If DMARC checks failed, log the DKIM and SPF status. If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.DMARCVerdict.Status == "FAIL" {
 			dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
-			if os.Getenv("DMARC_BLOCK_MODE") == "BLOCK" {
+			if blockDmarc {
 				disposition = "CONTINUE"
 			}
 		}
@@ -60,5 +66,5 @@ func HandleRequest(ctx context.Context, event events.SimpleEmailEvent) (SimpleEm
 
 	return SimpleEmailDisposition{
 		Disposition: disposition,
-	}, nil
+	}
 }
