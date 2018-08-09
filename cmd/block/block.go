@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	iLog      *log.Logger
 	blocklist *log.Logger
 
 	block map[string]string
@@ -36,6 +37,10 @@ type SimpleEmailDisposition struct {
 }
 
 func init() {
+	iLog = log.New(os.Stdout,
+		"[INFO]: ",
+		log.Ldate|log.Ltime)
+
 	blocklist = log.New(os.Stdout,
 		"[BLOCKLIST]: ",
 		log.Ldate|log.Ltime,
@@ -63,7 +68,14 @@ func CheckBlock(event events.SimpleEmailEvent, blockMap map[string]string) Simpl
 		// Here's the fun.  Do not know why From is a slice but whatevs.
 		// Compare the from domain to the blocklist and log if there was a match. If the blocklist contained the domain of the from address, stop the rule set
 		for _, from := range eventRecord.SES.Mail.CommonHeaders.From {
-			fromDomain := strings.Split(from, "@")[1]
+
+			fromDomainParts := strings.Split(from, "@")
+			if len(fromDomainParts) < 2 {
+				iLog.Printf("Cannot parse domain from %s: ", from)
+				continue
+			}
+
+			fromDomain := fromDomainParts[1]
 			domainBlockValue := block[fromDomain]
 			if domainBlockValue != "" {
 				blocklist.Printf("MessageID=%s fromDomain=%s was in the blocklist in mode=%s", eventRecord.SES.Mail.MessageID, fromDomain, domainBlockValue)
