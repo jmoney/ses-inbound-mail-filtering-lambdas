@@ -61,36 +61,44 @@ func CheckBlock(event events.SimpleEmailEvent, blockMap map[string]string) Simpl
 	// Default is assume this mail is compliant
 	disposition := "STOP_RULE"
 	for _, eventRecord := range event.Records {
-		// Here's the fun.  Do not know why From is a slice but whatevs.
-		// Compare the from domain to the blocklist and log if there was a match. If the blocklist contained the domain of the from address, stop the rule set
-		for _, from := range eventRecord.SES.Mail.CommonHeaders.From {
-
-			fromDomainParts := strings.Split(from, "@")
-			if len(fromDomainParts) < 2 {
-				blocklist.Printf("MessageID=%s STATUS=PROCESSING_FAILED fromDomain=%s: ", eventRecord.SES.Mail.MessageID, from)
-				continue
-			}
-
-			fromDomain := fromDomainParts[1]
-			fromDomain = strings.Trim(fromDomain, ">")
-			fromDomain = strings.ToLower(fromDomain)
-			domainBlockValue := block[fromDomain]
-			if domainBlockValue != "" {
-				if domainBlockValue == "BLOCK" {
-					disposition = "CONTINUE"
-					blocklist.Printf("MessageID=%s STATUS=BLOCK fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
-				} else {
-					blocklist.Printf("MessageID=%s STATUS=MONITOR fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
-				}
+		fromDomain := parseDomain(eventRecord.SES.Mail)
+		domainBlockValue := block[fromDomain]
+		if domainBlockValue != "" {
+			if domainBlockValue == "BLOCK" {
+				disposition = "CONTINUE"
+				blocklist.Printf("MessageID=%s STATUS=BLOCK fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
 			} else {
-				blocklist.Printf("MessageID=%s STATUS=PASS fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
+				blocklist.Printf("MessageID=%s STATUS=MONITOR fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
 			}
+		} else {
+			blocklist.Printf("MessageID=%s STATUS=PASS fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
 		}
 	}
 
 	return SimpleEmailDisposition{
 		Disposition: disposition,
 	}
+}
+
+func parseDomain(mail events.SimpleEmailMessage) string {
+	// Here's the fun.  Do not know why From is a slice but whatevs.
+	// Compare the from domain to the blocklist and log if there was a match. If the blocklist contained the domain of the from address, stop the rule set
+	for _, from := range mail.CommonHeaders.From {
+
+		fromDomainParts := strings.Split(from, "@")
+		if len(fromDomainParts) < 2 {
+			blocklist.Printf("MessageID=%s STATUS=PROCESSING_FAILED fromDomain=%s", mail.MessageID, from)
+			return ""
+		}
+
+		fromDomain := fromDomainParts[1]
+		fromDomain = strings.Trim(fromDomain, ">")
+		fromDomain = strings.ToLower(fromDomain)
+
+		return fromDomain
+	}
+	blocklist.Printf("MessageID=%s STATUS=NOT_FOUND", mail.MessageID)
+	return ""
 }
 
 // BuildBlockMap parse the block list out of the environment variable.  format is [$domain:$mode]
