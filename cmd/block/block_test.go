@@ -23,10 +23,12 @@ func TestBlockMap(t *testing.T) {
 }
 
 func TestBlock(t *testing.T) {
-	blockMap := BuildBlockMap("gmail.com:BLOCK,linkedin.com:MONITOR")
-	t.Run("Test Gmail block", testBlockFunc("foo@gmail.com", blockMap, "CONTINUE"))
+	blockMap := BuildBlockMap("gmail.com:MONITOR,linkedin.com:BLOCK")
+	t.Run("Test Gmail block", testBlockFunc("foo@gmail.com", blockMap, "STOP_RULE"))
 	t.Run("Test Yahoo block", testBlockFunc("bar@yahoo.com", blockMap, "STOP_RULE"))
-	t.Run("Test LinkedIn monitor", testBlockFunc("baz@linkedin.com", blockMap, "STOP_RULE"))
+	t.Run("Test LinkedIn monitor", testBlockFunc("baz@linkedin.com", blockMap, "CONTINUE"))
+	t.Run("Test VIA linkedin block", testBlockFunc("Foo Bar via LinkedIn <invitations@linkedin.com>", blockMap, "CONTINUE"))
+	t.Run("Test bad parse", testBlockFunc("Mail Delivery System <MAILER-DAEMON>", blockMap, "STOP_RULE"))
 }
 
 func testBlockFunc(testFrom string, blockMap map[string]string, expected string) func(*testing.T) {

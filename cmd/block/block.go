@@ -25,7 +25,6 @@ import (
 )
 
 var (
-	iLog      *log.Logger
 	blocklist *log.Logger
 
 	block map[string]string
@@ -37,9 +36,6 @@ type SimpleEmailDisposition struct {
 }
 
 func init() {
-	iLog = log.New(os.Stdout,
-		"[INFO]: ",
-		log.Ldate|log.Ltime)
 
 	blocklist = log.New(os.Stdout,
 		"[BLOCKLIST]: ",
@@ -71,11 +67,13 @@ func CheckBlock(event events.SimpleEmailEvent, blockMap map[string]string) Simpl
 
 			fromDomainParts := strings.Split(from, "@")
 			if len(fromDomainParts) < 2 {
-				iLog.Printf("Cannot parse domain from %s: ", from)
+				blocklist.Printf("MessageID=%s STATUS=PROCESSING_FAILED fromDomain=%s: ", eventRecord.SES.Mail.MessageID, from)
 				continue
 			}
 
 			fromDomain := fromDomainParts[1]
+			fromDomain = strings.Trim(fromDomain, ">")
+			fromDomain = strings.ToLower(fromDomain)
 			domainBlockValue := block[fromDomain]
 			if domainBlockValue != "" {
 				if domainBlockValue == "BLOCK" {
