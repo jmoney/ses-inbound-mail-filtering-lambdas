@@ -65,18 +65,26 @@ func CheckSPAM(event events.SimpleEmailEvent, blockSpam bool, blockVirus bool) S
 	for _, eventRecord := range event.Records {
 		// If AWS has classified this mail as spam, log that this happened.  If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.SpamVerdict.Status == "FAIL" {
-			spam.Printf("MessageID=%s was considered SPAM", eventRecord.SES.Mail.MessageID)
 			if blockSpam {
 				disposition = "CONTINUE"
+				spam.Printf("MessageID=%s STATUS=BLOCK", eventRecord.SES.Mail.MessageID)
+			} else {
+				spam.Printf("MessageID=%s STATUS=MONITOR", eventRecord.SES.Mail.MessageID)
 			}
+		} else {
+			spam.Printf("MessageID=%s STATUS=PASS", eventRecord.SES.Mail.MessageID)
 		}
 
 		// If AWS has classified any attachments as containing viruses, log that this happened.  If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.VirusVerdict.Status == "FAIL" {
-			virus.Printf("MessageID=%s possibly contained a possible VIRUS", eventRecord.SES.Mail.MessageID)
 			if blockVirus {
 				disposition = "CONTINUE"
+				virus.Printf("MessageID=%s STATUS=BLOCK", eventRecord.SES.Mail.MessageID)
+			} else {
+				virus.Printf("MessageID=%s STATUS=MONITOR", eventRecord.SES.Mail.MessageID)
 			}
+		} else {
+			virus.Printf("MessageID=%s STATUS=PASS", eventRecord.SES.Mail.MessageID)
 		}
 	}
 	return SimpleEmailDisposition{

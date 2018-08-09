@@ -57,10 +57,14 @@ func CheckDMARC(event events.SimpleEmailEvent, blockDmarc bool) SimpleEmailDispo
 	for _, eventRecord := range event.Records {
 		// If DMARC checks failed, log the DKIM and SPF status. If block mode is on, stop the rule set
 		if eventRecord.SES.Receipt.DMARCVerdict.Status == "FAIL" {
-			dmarc.Printf("MessageID=%s failed DMARC: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
 			if blockDmarc {
 				disposition = "CONTINUE"
+				dmarc.Printf("MessageID=%s STATUS=BLOCK: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
+			} else {
+				dmarc.Printf("MessageID=%s STATUS=MONITOR: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
 			}
+		} else {
+			dmarc.Printf("MessageID=%s STATUS=PASS: SPF=%v DKIM=%v", eventRecord.SES.Mail.MessageID, eventRecord.SES.Receipt.SPFVerdict, eventRecord.SES.Receipt.DKIMVerdict)
 		}
 	}
 

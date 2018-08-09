@@ -1,5 +1,3 @@
-./cmd/dmarc/dmarc
-./cmd/block/block
-./cmd/spam/spam
 dist/
 vendor/
+bin
