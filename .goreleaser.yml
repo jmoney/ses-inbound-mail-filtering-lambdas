@@ -1,21 +1,21 @@
 project_name: ses-inbound-mail-filtering-lambdas
 builds:
   - 
-    main: ./cmd/dmarc/main.go
+    main: ./cmd/dmarc/dmarc.go
     binary: dmarc
     goos:
       - linux
     goarch:
       - amd64
   - 
-    main: ./cmd/block/main.go
+    main: ./cmd/block/block.go
     binary: block
     goos:
       - linux
     goarch:
       - amd64
   - 
-    main: ./cmd/spam/main.go
+    main: ./cmd/spam/spam.go
     binary: spam
     goos:
       - linux
