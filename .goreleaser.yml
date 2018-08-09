@@ -1,4 +1,8 @@
 project_name: ses-inbound-mail-filtering-lambdas
+
+git:
+  short_hash: true
+
 builds:
   - 
     main: ./cmd/dmarc/dmarc.go
@@ -28,6 +32,9 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+
+snapshot:
+  name_template: "SNAPSHOT_{{ .Commit }}"
 
 archive:
   name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
