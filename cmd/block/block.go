@@ -80,12 +80,12 @@ func CheckBlock(event events.SimpleEmailEvent, blockMap map[string]string) Simpl
 			if domainBlockValue != "" {
 				if domainBlockValue == "BLOCK" {
 					disposition = "CONTINUE"
-					blocklist.Printf("MessageID=%s STATUS=BLOCK fromDomain=%s =%s", eventRecord.SES.Mail.MessageID, fromDomain, domainBlockValue)
+					blocklist.Printf("MessageID=%s STATUS=BLOCK fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
 				} else {
-					blocklist.Printf("MessageID=%s STATUS=MONITOR fromDomain=%s =%s", eventRecord.SES.Mail.MessageID, fromDomain, domainBlockValue)
+					blocklist.Printf("MessageID=%s STATUS=MONITOR fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
 				}
 			} else {
-				blocklist.Printf("MessageID=%s STATUS=PASS fromDomain=%s =%s", eventRecord.SES.Mail.MessageID, fromDomain, domainBlockValue)
+				blocklist.Printf("MessageID=%s STATUS=PASS fromDomain=%s", eventRecord.SES.Mail.MessageID, fromDomain)
 			}
 		}
 	}
