@@ -1,0 +1,25 @@
+name: Update copyright year(s) in license file
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 1 1 *'
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+    update-license-year:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: FantasticFiasco/action-update@v3
+              with:
+                branchName: license/{{currentYear}}
+                commitTitle: Update License
+                commitBody: License updated to {{currentYear}}.
+                prTitle: Update my license
+                prBody: It's that time of the year, let's update the license.
+                assignees: jmoney
+                labels: documentation, legal
