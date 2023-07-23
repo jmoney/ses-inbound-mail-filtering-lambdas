@@ -14,8 +14,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - uses: FantasticFiasco/action-update@v3
+            - uses: FantasticFiasco/action-update-license-year@v3
               with:
+                token: ${{ secrets.GITHUB_TOKEN }}
                 branchName: license/{{currentYear}}
                 commitTitle: Update License
                 commitBody: License updated to {{currentYear}}.
