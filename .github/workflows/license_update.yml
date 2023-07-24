@@ -13,15 +13,10 @@ jobs:
     update-license-year:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: FantasticFiasco/action-update-license-year@v3
+            - uses: actions/checkout@v3
+            - uses: jmoney/gha-license-updater@main
               with:
                 token: ${{ secrets.GITHUB_TOKEN }}
-                branchName: license/{{currentYear}}
-                commitTitle: Update License
-                commitBody: License updated to {{currentYear}}.
-                prTitle: Update my license
-                prBody: It's that time of the year, let's update the license.
                 assignees: jmoney
-                labels: documentation, legal
-                transform: copyright\s+\[(?<from>\d{4})\].+
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
