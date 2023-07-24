@@ -24,4 +24,4 @@ jobs:
                 prBody: It's that time of the year, let's update the license.
                 assignees: jmoney
                 labels: documentation, legal
-                transform: copyright\\s+\\[\\d{4})\\].+
+                transform: copyright\\s+\\[(?<from>\\d{4})\\].+
